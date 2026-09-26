@@ -17,7 +17,6 @@
     "express": "^5.2.1",
     "firebase-admin": "^13.10.0",
     "mongoose": "^9.9.1",
-    "nodemailer": "^10.0.0",
     "razorpay": "^2.9.8"
   },
   "devDependencies": {
