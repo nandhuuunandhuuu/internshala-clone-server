@@ -1,0 +1,18 @@
+// Simple keyword/skill-overlap matching (not real ML, but explainable and fast)
+function computeMatch(candidateSkills = [], requiredSkills = []) {
+  const normalize = (arr) => arr.map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const candidate = normalize(candidateSkills);
+  const required = normalize(requiredSkills);
+
+  if (required.length === 0) {
+    return { score: 0, matchedSkills: [], missingSkills: [] };
+  }
+
+  const matchedSkills = required.filter((skill) => candidate.includes(skill));
+  const missingSkills = required.filter((skill) => !candidate.includes(skill));
+  const score = Math.round((matchedSkills.length / required.length) * 100);
+
+  return { score, matchedSkills, missingSkills };
+}
+
+module.exports = { computeMatch };
