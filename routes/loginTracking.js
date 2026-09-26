@@ -2,19 +2,8 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const LoginHistory = require("../models/LoginHistory");
-const nodemailer = require("nodemailer");
-
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  tls: {
-    minVersion: "TLSv1.2",
-  },
-  family: 4,
-});
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -48,12 +37,17 @@ router.post("/check", async (req, res) => {
       user.resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-      await transporter.sendMail({
-        from: `"CareerLaunch" <${process.env.GMAIL_USER}>`,
-        to: user.email,
-        subject: "Verify your Chrome login - CareerLaunch",
-        html: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
-      });
+            try {
+        await resend.emails.send({
+          from: "CareerLaunch <onboarding@resend.dev>",
+          to: user.email,
+          subject: "Verify your Chrome login - CareerLaunch",
+          html: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
+        });
+      } catch (mailErr) {
+        console.error("Email send failed:", mailErr);
+        return res.status(502).json({ error: "Failed to send OTP email. Please try again." });
+      }
 
       return res.json({ requiresOtp: true, message: "OTP sent to your email." });
     }
