@@ -3,15 +3,8 @@ const router = express.Router();
 const User = require("../models/User");
 const admin = require("../firebaseAdmin");
 const { generatePassword } = require("../utils/passwordGenerator");
-const nodemailer = require("nodemailer");
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const { BrevoClient } = require("@getbrevo/brevo");
+const brevo = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
 }
@@ -46,12 +39,17 @@ router.post("/request", async (req, res) => {
     user.resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
     await user.save();
 
-    await transporter.sendMail({
-  from: `"CareerLaunch" <${process.env.GMAIL_USER}>`,
-  to: user.email,
-  subject: "Your CareerLaunch password reset code",
-  html: `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`,
-    });
+        try {
+      await brevo.transactionalEmails.sendTransacEmail({
+        sender: { name: "CareerLaunch", email: "your_verified_brevo_sender@email.com" },
+        to: [{ email: user.email }],
+        subject: "Your CareerLaunch password reset code",
+        htmlContent: `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`,
+      });
+    } catch (mailErr) {
+      console.error("Email send failed:", mailErr);
+      return res.status(502).json({ error: "Failed to send verification code. Please try again." });
+    }
 
     res.json({ message: "Verification code sent to your email." });
   } catch (err) {
