@@ -2,16 +2,10 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 const User = require("../models/User");
-const nodemailer = require("nodemailer");
 const { isWithinPaymentWindow } = require("../utils/plans");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const { BrevoClient } = require("@getbrevo/brevo");
+const brevo = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -35,12 +29,17 @@ router.post("/request-otp", async (req, res) => {
     user.resumeOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await transporter.sendMail({
-      from: `"CareerLaunch" <${process.env.GMAIL_USER}>`,
-      to: user.email,
-      subject: "Your CareerLaunch Resume Payment OTP",
-      html: `<p>Your OTP to confirm resume creation payment is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
-    });
+        try {
+      await brevo.transactionalEmails.sendTransacEmail({
+        sender: { name: "CareerLaunch", email: "your_verified_brevo_sender@email.com" },
+        to: [{ email: user.email }],
+        subject: "Your CareerLaunch Resume Payment OTP",
+        htmlContent: `<p>Your OTP to confirm resume creation payment is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+      });
+    } catch (mailErr) {
+      console.error("Email send failed:", mailErr);
+      return res.status(502).json({ error: "Failed to send OTP. Please try again." });
+    }
 
     res.json({ message: "OTP sent to your registered email." });
   } catch (err) {
