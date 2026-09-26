@@ -44,16 +44,21 @@ router.post("/check", async (req, res) => {
       await user.save();
 
                  try {
-        await apiInstance.sendTransacEmail({
-          sender: { name: "CareerLaunch", email: "careerlauch@gmail.com" },
-          to: [{ email: user.email }],
-          subject: "Verify your Chrome login - CareerLaunch",
-          htmlContent: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
-        });
-      } catch (mailErr) {
-        console.error("Email send failed:", mailErr);
-        return res.status(502).json({ error: "Failed to send OTP email. Please try again." });
-      }
+  await apiInstance.sendTransacEmail({
+    sender: {
+      name: "CareerLaunch",
+      email: process.env.BREVO_SENDER_EMAIL,
+    },
+    to: [{ email: user.email }],
+    subject: "Verify your Chrome login - CareerLaunch",
+    htmlContent: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
+  });
+  } catch (mailErr) {
+  console.error("Email send failed:", mailErr);
+  return res.status(502).json({
+    error: "Failed to send OTP email. Please try again.",
+  });
+  }
 
       return res.json({ requiresOtp: true, message: "OTP sent to your email." });
     }
