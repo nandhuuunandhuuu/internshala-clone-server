@@ -5,8 +5,15 @@ const LoginHistory = require("../models/LoginHistory");
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+  tls: {
+    minVersion: "TLSv1.2",
+    rejectUnauthorized: true,
+  },
+  family: 4,
 });
 
 function generateOtp() {
