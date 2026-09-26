@@ -41,7 +41,7 @@ router.post("/request", async (req, res) => {
 
         try {
       await brevo.transactionalEmails.sendTransacEmail({
-        sender: { name: "CareerLaunch", email: "your_verified_brevo_sender@email.com" },
+        sender: { name: "CareerLaunch", email: "careerlauch@gmail.com" },
         to: [{ email: user.email }],
         subject: "Your CareerLaunch password reset code",
         htmlContent: `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`,
