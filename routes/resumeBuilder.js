@@ -31,7 +31,7 @@ router.post("/request-otp", async (req, res) => {
 
         try {
       await brevo.transactionalEmails.sendTransacEmail({
-        sender: { name: "CareerLaunch", email: "your_verified_brevo_sender@email.com" },
+        sender: { name: "CareerLaunch", email: "careerlauch@gmail.com" },
         to: [{ email: user.email }],
         subject: "Your CareerLaunch Resume Payment OTP",
         htmlContent: `<p>Your OTP to confirm resume creation payment is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
