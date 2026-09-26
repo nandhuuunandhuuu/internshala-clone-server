@@ -2,14 +2,8 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const LoginHistory = require("../models/LoginHistory");
-const SibApiV3Sdk = require("@getbrevo/brevo");
-
-const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-
-apiInstance.setApiKey(
-  SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY
-);
+const { BrevoClient } = require("@getbrevo/brevo");
+const brevo = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -43,22 +37,17 @@ router.post("/check", async (req, res) => {
       user.resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-                 try {
-  await apiInstance.sendTransacEmail({
-    sender: {
-      name: "CareerLaunch",
-      email: process.env.BREVO_SENDER_EMAIL,
-    },
-    to: [{ email: user.email }],
-    subject: "Verify your Chrome login - CareerLaunch",
-    htmlContent: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
-  });
-  } catch (mailErr) {
-  console.error("Email send failed:", mailErr);
-  return res.status(502).json({
-    error: "Failed to send OTP email. Please try again.",
-  });
-  }
+                     try {
+        await brevo.transactionalEmails.sendTransacEmail({
+          sender: { name: "CareerLaunch", email: "careerlauch@gmail.com" },
+          to: [{ email: user.email }],
+          subject: "Verify your Chrome login - CareerLaunch",
+          htmlContent: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
+        });
+      } catch (mailErr) {
+        console.error("Email send failed:", mailErr);
+        return res.status(502).json({ error: "Failed to send OTP email. Please try again." });
+      }
 
       return res.json({ requiresOtp: true, message: "OTP sent to your email." });
     }
