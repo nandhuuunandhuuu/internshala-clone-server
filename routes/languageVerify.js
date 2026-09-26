@@ -1,15 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const { BrevoClient } = require("@getbrevo/brevo");
+const brevo = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -26,12 +20,17 @@ router.post("/request-french-otp", async (req, res) => {
     user.resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await transporter.sendMail({
-      from: `"CareerLaunch" <${process.env.GMAIL_USER}>`,
-      to: user.email,
-      subject: "Verify to switch to French - CareerLaunch",
-      html: `<p>Your verification code to enable French language is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
-    });
+        try {
+      await brevo.transactionalEmails.sendTransacEmail({
+        sender: { name: "CareerLaunch", email: "careerlauch@gmail.com" },
+        to: [{ email: user.email }],
+        subject: "Verify to switch to French - CareerLaunch",
+        htmlContent: `<p>Your verification code to enable French language is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
+      });
+    } catch (mailErr) {
+      console.error("Email send failed:", mailErr);
+      return res.status(502).json({ error: "Failed to send OTP. Please try again." });
+    }
 
     res.json({ message: "OTP sent." });
   } catch (err) {
