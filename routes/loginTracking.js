@@ -2,8 +2,14 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const LoginHistory = require("../models/LoginHistory");
-const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
+const SibApiV3Sdk = require("@getbrevo/brevo");
+
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+apiInstance.setApiKey(
+  SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -37,12 +43,12 @@ router.post("/check", async (req, res) => {
       user.resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-            try {
-        await resend.emails.send({
-          from: "CareerLaunch <onboarding@resend.dev>",
-          to: user.email,
+                 try {
+        await apiInstance.sendTransacEmail({
+          sender: { name: "CareerLaunch", email: "careerlauch@gmail.com" },
+          to: [{ email: user.email }],
           subject: "Verify your Chrome login - CareerLaunch",
-          html: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
+          htmlContent: `<p>Your login verification code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
         });
       } catch (mailErr) {
         console.error("Email send failed:", mailErr);
